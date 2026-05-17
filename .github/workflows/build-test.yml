@@ -1,0 +1,10 @@
+      - name: Build APK release
+        # Kita tambahkan perintah --split-per-abi di bawah ini agar APK-nya dipecat jadi langsing
+        run: flutter build apk --release --split-per-abi --no-tree-shake-icons
+
+      - name: Upload APK Result
+        uses: actions/upload-artifact@v3
+        with:
+          name: desacluring-chat-test
+          # Jalur path kita ubah pakai tanda bintang (*) agar semua hasil pecahan APK langsingnya ikut terambil
+          path: build/app/outputs/flutter-apk/app-*.apk
