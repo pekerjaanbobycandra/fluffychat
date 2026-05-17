@@ -1,10 +1,43 @@
-      - name: Build APK release
-        # Kita tambahkan perintah --split-per-abi di bawah ini agar APK-nya dipecat jadi langsing
+name: Build Android Test APK
+
+on:
+  workflow_dispatch: # Murni hanya berjalan jika diklik manual dari tab Actions
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17' # Menggunakan Java 17 agar stabil dengan Android modern
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+
+      - name: Inject Firebase Key & Change Package Name
+        run: |
+          # 1. Menyuntikkan kunci rahasia Firebase ke dalam folder project
+          echo '${{ secrets.FIREBASE_JSON }}' > android/app/google-services.json
+          
+          # 2. Mengubah ID sistem internal menjadi com.desacluring.hub
+          sed -i 's/applicationId ".*"/applicationId "com.desacluring.hub"/g' android/app/build.gradle
+          
+          # 3. Mengunduh modul pendukung aplikasi
+          flutter pub get
+
+      - name: Build APK Release (Mode Langsing)
+        # --split-per-abi bertugas memotong APK agar ukurannya kecil/ringan
         run: flutter build apk --release --split-per-abi --no-tree-shake-icons
 
       - name: Upload APK Result
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: desacluring-chat-test
-          # Jalur path kita ubah pakai tanda bintang (*) agar semua hasil pecahan APK langsingnya ikut terambil
           path: build/app/outputs/flutter-apk/app-*.apk
