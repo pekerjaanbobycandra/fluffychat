@@ -46,22 +46,17 @@ jobs:
           sed -i '/defaultConfig {/a \        resConfigs "en", "id"' "$GRADLE_FILE"
           
           # 6. SUNTIKAN UTAMA: Buat config.json untuk PUSH NOTIFIKASI & HARD-LOCK SERVER
+          # Langkah ini sudah cukup, tidak perlu edit pubspec.yaml lagi!
           mkdir -p assets
           echo '{
             "push_gateway_url": "https://sygnal.desacluring.com",
             "default_homeserver": "https://hub.desacluring.com"
           }' > assets/config.json
           
-          # 7. TRICK AMAN: Paksa daftarkan folder assets ke pubspec.yaml agar PASTI dibungkus ke APK
-          if ! grep -q "assets/config.json" pubspec.yaml; then
-            sed -i '/flutter:/a \  assets:\n    - assets/config.json' pubspec.yaml
-          fi
-          
-          # 8. Ambil dependensi Flutter
+          # 7. Ambil dependensi Flutter
           flutter pub get
 
       - name: Build APK Release (Langsing Khusus HP Modern + Kompresi)
-        # Menambahkan --obfuscate untuk mengompres kode dan menyembunyikan simbol debug agar APK makin kecil
         run: flutter build apk --release --target-platform android-arm64 --no-tree-shake-icons --obfuscate --split-debug-info=build/app/outputs/symbols
 
       - name: Upload APK Result
