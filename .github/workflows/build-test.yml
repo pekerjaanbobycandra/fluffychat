@@ -21,7 +21,7 @@ jobs:
         with:
           channel: 'stable'
 
-      - name: Inject Firebase Key & Change Package Name
+      - name: Inject Firebase Key & Fix Signing Config
         run: |
           # 1. Cari lokasi file build.gradle secara otomatis
           GRADLE_FILE=$(find . -type f \( -name "build.gradle" -o -name "build.gradle.kts" \) | grep "android/app" | head -n 1)
@@ -31,7 +31,7 @@ jobs:
             exit 1
           fi
           
-          # 2. Suntikkan kunci rahasia Firebase
+          # 2. Suntikkan kunci rahasia Firebase yang asli
           APP_DIR=$(dirname "$GRADLE_FILE")
           echo '${{ secrets.FIREBASE_JSON }}' > "$APP_DIR/google-services.json"
           
@@ -42,11 +42,15 @@ jobs:
             sed -i 's/applicationId ".*"/applicationId "com.desacluring.hub"/g' "$GRADLE_FILE"
           fi
           
-          # 4. Ambil dependensi Flutter
+          # 4. TRICK: Paksa Gradle menggunakan tanda tangan (Signing) 'debug' bawaan Android
+          # Ini dilakukan agar kita tidak dicegat oleh error dummy.keystore yang hilang
+          sed -i 's/signingConfigs.release/signingConfigs.debug/g' "$GRADLE_FILE"
+          sed -i 's/signingConfigs.getByName("release")/signingConfigs.getByName("debug")/g' "$GRADLE_FILE"
+          
+          # 5. Ambil dependensi Flutter
           flutter pub get
 
       - name: Build APK Release (Langsing Khusus HP Modern)
-        # Kita kunci targetnya ke android-arm64 agar otomatis langsing tanpa bentrok splits filter
         run: flutter build apk --release --target-platform android-arm64 --no-tree-shake-icons
 
       - name: Upload APK Result
