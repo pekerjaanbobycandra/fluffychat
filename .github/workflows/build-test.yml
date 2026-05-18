@@ -42,11 +42,14 @@ jobs:
           sed -i 's/signingConfigs.release/signingConfigs.debug/g' "$GRADLE_FILE"
           sed -i 's/signingConfigs.getByName("release")/signingConfigs.getByName("debug")/g' "$GRADLE_FILE"
           
-          # 5. DIET BAHASA: Batasi hanya Bahasa Indonesia & Inggris untuk menyusutkan ukuran APK
-          sed -i '/defaultConfig {/a \        resConfigs "en", "id"' "$GRADLE_FILE"
+          # 5. DIET BAHASA: Deteksi otomatis format Kotlin atau Groovy agar tidak error
+          if [[ "$GRADLE_FILE" == *".kts" ]]; then
+            sed -i '/defaultConfig {/a \        resConfigs("en", "id")' "$GRADLE_FILE"
+          else
+            sed -i '/defaultConfig {/a \        resConfigs "en", "id"' "$GRADLE_FILE"
+          fi
           
           # 6. SUNTIKAN UTAMA: Buat config.json untuk PUSH NOTIFIKASI & HARD-LOCK SERVER
-          # Langkah ini sudah cukup, tidak perlu edit pubspec.yaml lagi!
           mkdir -p assets
           echo '{
             "push_gateway_url": "https://sygnal.desacluring.com",
