@@ -21,7 +21,7 @@ jobs:
         with:
           channel: 'stable'
 
-      - name: Inject Firebase Key, Config, & Diet Bahasa
+      - name: Inject Firebase Key, Diet Bahasa, & Perombakan Source Code
         run: |
           # 1. Cari lokasi file build.gradle secara otomatis
           GRADLE_FILE=$(find . -type f \( -name "build.gradle" -o -name "build.gradle.kts" \) | grep "android/app" | head -n 1)
@@ -42,51 +42,45 @@ jobs:
           sed -i 's/signingConfigs.release/signingConfigs.debug/g' "$GRADLE_FILE"
           sed -i 's/signingConfigs.getByName("release")/signingConfigs.getByName("debug")/g' "$GRADLE_FILE"
           
-          # 5. DIET BAHASA: Deteksi otomatis format Kotlin atau Groovy agar tidak error
+          # 5. DIET BAHASA: Batasi hanya Bahasa Indonesia & Inggris agar APK kecil
           if [[ "$GRADLE_FILE" == *".kts" ]]; then
             sed -i '/defaultConfig {/a \        resConfigs("en", "id")' "$GRADLE_FILE"
           else
             sed -i '/defaultConfig {/a \        resConfigs "en", "id"' "$GRADLE_FILE"
           fi
           
-          # 6. SUNTIKAN UTAMA: Buat config.json untuk PUSH NOTIFIKASI & HARD-LOCK SERVER DESA
-          mkdir -p assets
-          echo '{
-            "default_homeserver": "https://hub.desacluring.com",
-            "push_gateway_url": "https://sygnal.desacluring.com"
-          }' > assets/config.json
-          
-          # 7. PYTHON SAPU JAGAT: Daftarkan assets/config.json ke pubspec.yaml secara presisi tanpa merusak struktur
+          # 6. OPERASI GEMBOS KODINGAN: Ubah paksa server default dan gateway langsung dari file .dart
           python3 -c "
-          with open('pubspec.yaml', 'r') as f:
-              lines = f.readlines()
-          
-          out = []
-          added = False
-          inside_flutter = False
-          
-          for line in lines:
-              out.append(line)
-              if line.startswith('flutter:'):
-                  inside_flutter = True
-              elif inside_flutter and line.strip().startswith('assets:'):
-                  indent = line.split('assets:')[0]
-                  out.append(f'{indent}  - assets/config.json\n')
-                  added = True
-                  inside_flutter = False
-          
-          if not added:
-              out = []
-              for line in lines:
-                  out.append(line)
-                  if line.startswith('flutter:'):
-                      out.append('  assets:\n    - assets/config.json\n')
-          
-          with open('pubspec.yaml', 'w') as f:
-              f.writelines(out)
+          import os
+          print('=== Memulai Operasi Gembos Urat Nadi Kodingan ===')
+          for root, dirs, files in os.walk('lib'):
+              for file in files:
+                  if file.endswith('.dart'):
+                      filepath = os.path.join(root, file)
+                      with open(filepath, 'r', encoding='utf-8', errors='ignore') as f:
+                          content = f.read()
+                      
+                      modified = False
+                      if 'matrix.org' in content:
+                          content = content.replace('matrix.org', 'hub.desacluring.com')
+                          modified = True
+                      if 'mozilla.org' in content:
+                          content = content.replace('mozilla.org', 'hub.desacluring.com')
+                          modified = True
+                      if 'tchncs.de' in content:
+                          content = content.replace('tchncs.de', 'hub.desacluring.com')
+                          modified = True
+                      if 'push.fluffychat.im' in content:
+                          content = content.replace('push.fluffychat.im', 'sygnal.desacluring.com')
+                          modified = True
+                      
+                      if modified:
+                          print(f'Berhasil merombak berkas: {filepath}')
+                          with open(filepath, 'w', encoding='utf-8') as f:
+                              f.write(content)
           "
           
-          # 8. Ambil dependensi Flutter
+          # 7. Ambil dependensi Flutter
           flutter pub get
 
       - name: Build APK Release (Langsing Khusus HP Modern + Kompresi)
