@@ -23,37 +23,34 @@ jobs:
 
       - name: Inject Firebase Key & Change Package Name
         run: |
-          # 1. Radar otomatis mencari letak file build.gradle di dalam project
+          # 1. Cari lokasi file build.gradle secara otomatis
           GRADLE_FILE=$(find . -type f \( -name "build.gradle" -o -name "build.gradle.kts" \) | grep "android/app" | head -n 1)
           
           if [ -z "$GRADLE_FILE" ]; then
-            echo "ERROR: File build.gradle tidak ditemukan di folder android/app!"
+            echo "ERROR: File build.gradle tidak ditemukan!"
             exit 1
           fi
           
-          echo "Berhasil menemukan lokasi file di: $GRADLE_FILE"
-          
-          # 2. Tentukan folder tujuan google-services.json secara dinamis
+          # 2. Suntikkan kunci rahasia Firebase
           APP_DIR=$(dirname "$GRADLE_FILE")
           echo '${{ secrets.FIREBASE_JSON }}' > "$APP_DIR/google-services.json"
-          echo "google-services.json berhasil disuntikkan ke $APP_DIR"
           
-          # 3. Ubah nama Package ID sesuai tipe file yang ditemukan (.gradle atau .kts)
+          # 3. Ubah Package ID sistem internal ke com.desacluring.hub
           if [[ "$GRADLE_FILE" == *".kts" ]]; then
             sed -i 's/applicationId = ".*"/applicationId = "com.desacluring.hub"/g' "$GRADLE_FILE"
           else
             sed -i 's/applicationId ".*"/applicationId "com.desacluring.hub"/g' "$GRADLE_FILE"
           fi
-          echo "Application ID berhasil diperbarui menjadi com.desacluring.hub"
           
           # 4. Ambil dependensi Flutter
           flutter pub get
 
-      - name: Build APK Release (Mode Langsing)
-        run: flutter build apk --release --split-per-abi --no-tree-shake-icons
+      - name: Build APK Release (Langsing Khusus HP Modern)
+        # Kita kunci targetnya ke android-arm64 agar otomatis langsing tanpa bentrok splits filter
+        run: flutter build apk --release --target-platform android-arm64 --no-tree-shake-icons
 
       - name: Upload APK Result
         uses: actions/upload-artifact@v4
         with:
           name: desacluring-chat-test
-          path: build/app/outputs/flutter-apk/app-*.apk
+          path: build/app/outputs/flutter-apk/*.apk
