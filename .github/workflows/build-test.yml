@@ -47,7 +47,13 @@ jobs:
           sed -i 's/signingConfigs.release/signingConfigs.debug/g' "$GRADLE_FILE"
           sed -i 's/signingConfigs.getByName("release")/signingConfigs.getByName("debug")/g' "$GRADLE_FILE"
           
-          # 5. Ambil dependensi Flutter
+          # 5. SUNTIKAN UTAMA: Buat folder assets dan isi config.json agar aplikasi tahu alamat Sygnal desa
+          mkdir -p assets
+          echo '{
+            "push_gateway_url": "https://sygnal.desacluring.com"
+          }' > assets/config.json
+          
+          # 6. Ambil dependensi Flutter
           flutter pub get
 
       - name: Build APK Release (Langsing Khusus HP Modern)
