@@ -49,14 +49,44 @@ jobs:
             sed -i '/defaultConfig {/a \        resConfigs "en", "id"' "$GRADLE_FILE"
           fi
           
-          # 6. SUNTIKAN UTAMA: Buat config.json untuk PUSH NOTIFIKASI & HARD-LOCK SERVER
+          # 6. SUNTIKAN UTAMA: Buat config.json untuk PUSH NOTIFIKASI & HARD-LOCK SERVER DESA
           mkdir -p assets
           echo '{
-            "push_gateway_url": "https://sygnal.desacluring.com",
-            "default_homeserver": "https://hub.desacluring.com"
+            "default_homeserver": "https://hub.desacluring.com",
+            "push_gateway_url": "https://sygnal.desacluring.com"
           }' > assets/config.json
           
-          # 7. Ambil dependensi Flutter
+          # 7. PYTHON SAPU JAGAT: Daftarkan assets/config.json ke pubspec.yaml secara presisi tanpa merusak struktur
+          python3 -c "
+          with open('pubspec.yaml', 'r') as f:
+              lines = f.readlines()
+          
+          out = []
+          added = False
+          inside_flutter = False
+          
+          for line in lines:
+              out.append(line)
+              if line.startswith('flutter:'):
+                  inside_flutter = True
+              elif inside_flutter and line.strip().startswith('assets:'):
+                  indent = line.split('assets:')[0]
+                  out.append(f'{indent}  - assets/config.json\n')
+                  added = True
+                  inside_flutter = False
+          
+          if not added:
+              out = []
+              for line in lines:
+                  out.append(line)
+                  if line.startswith('flutter:'):
+                      out.append('  assets:\n    - assets/config.json\n')
+          
+          with open('pubspec.yaml', 'w') as f:
+              f.writelines(out)
+          "
+          
+          # 8. Ambil dependensi Flutter
           flutter pub get
 
       - name: Build APK Release (Langsing Khusus HP Modern + Kompresi)
