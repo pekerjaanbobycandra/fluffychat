@@ -14,7 +14,7 @@ jobs:
         uses: actions/setup-java@v4
         with:
           distribution: 'zulu'
-          java-version: '17' # Menggunakan Java 17 agar stabil dengan Android modern
+          java-version: '17'
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
@@ -23,17 +23,33 @@ jobs:
 
       - name: Inject Firebase Key & Change Package Name
         run: |
-          # 1. Menyuntikkan kunci rahasia Firebase ke dalam folder project
-          echo '${{ secrets.FIREBASE_JSON }}' > android/app/google-services.json
+          # 1. Radar otomatis mencari letak file build.gradle di dalam project
+          GRADLE_FILE=$(find . -type f \( -name "build.gradle" -o -name "build.gradle.kts" \) | grep "android/app" | head -n 1)
           
-          # 2. Mengubah ID sistem internal menjadi com.desacluring.hub
-          sed -i 's/applicationId ".*"/applicationId "com.desacluring.hub"/g' android/app/build.gradle
+          if [ -z "$GRADLE_FILE" ]; then
+            echo "ERROR: File build.gradle tidak ditemukan di folder android/app!"
+            exit 1
+          fi
           
-          # 3. Mengunduh modul pendukung aplikasi
+          echo "Berhasil menemukan lokasi file di: $GRADLE_FILE"
+          
+          # 2. Tentukan folder tujuan google-services.json secara dinamis
+          APP_DIR=$(dirname "$GRADLE_FILE")
+          echo '${{ secrets.FIREBASE_JSON }}' > "$APP_DIR/google-services.json"
+          echo "google-services.json berhasil disuntikkan ke $APP_DIR"
+          
+          # 3. Ubah nama Package ID sesuai tipe file yang ditemukan (.gradle atau .kts)
+          if [[ "$GRADLE_FILE" == *".kts" ]]; then
+            sed -i 's/applicationId = ".*"/applicationId = "com.desacluring.hub"/g' "$GRADLE_FILE"
+          else
+            sed -i 's/applicationId ".*"/applicationId "com.desacluring.hub"/g' "$GRADLE_FILE"
+          fi
+          echo "Application ID berhasil diperbarui menjadi com.desacluring.hub"
+          
+          # 4. Ambil dependensi Flutter
           flutter pub get
 
       - name: Build APK Release (Mode Langsing)
-        # --split-per-abi bertugas memotong APK agar ukurannya kecil/ringan
         run: flutter build apk --release --split-per-abi --no-tree-shake-icons
 
       - name: Upload APK Result
